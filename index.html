@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味英语拼读学习</title>
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --success: #67C23A;
+            --danger: #F56C6C;
+            --warning: #E6A23C;
+            --bg: #F5F7FA;
+            --card-bg: #FFFFFF;
+            --text-main: #303133;
+            --text-light: #909399;
+            --border: #EBEEF5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 导航栏 */
+        nav {
+            width: 100%;
+            background-color: var(--primary);
+            padding: 15px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+
+        nav button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        nav button:hover, nav button.active {
+            background: white;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* 主内容区 */
+        main {
+            width: 100%;
+            max-width: 900px;
+            padding: 30px 20px;
+            flex-grow: 1;
+        }
+
+        .view {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 { text-align: center; margin-bottom: 20px; color: var(--primary); }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+        /* --- 模式1：字母表学习 --- */
+        .alphabet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+        }
+
+        .letter-btn {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 32px;
+            padding: 15px 0;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        .letter-btn:hover {
+            border-color: var(--primary);
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+            color: var(--primary);
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white; border-radius: 20px; padding: 40px; text-align: center;
+            width: 320px; position: relative; animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-close {
+            position: absolute; top: 15px; right: 20px; font-size: 28px; cursor: pointer; color: var(--text-light);
+        }
+        .modal-letter { font-size: 80px; font-weight: bold; color: var(--primary); margin: 10px 0; line-height: 1; }
+        .modal-emoji { font-size: 70px; margin: 10px 0; }
+        .modal-word { font-size: 32px; font-weight: bold; color: var(--text-main); }
+
+        /* --- 选择器样式共用 --- */
+        .setup-area { text-align: center; margin-bottom: 20px; }
+        .btn-group { margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #357ABD; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: white; }
+        
+        .toggle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 10px; margin-bottom: 25px; }
+        .toggle-btn { 
+            padding: 12px 5px; border: 2px solid var(--border); background: var(--bg); border-radius: 8px; 
+            cursor: pointer; font-size: 22px; font-weight: bold; color: var(--text-light);
+            transition: all 0.2s; user-select: none;
+        }
+        .toggle-btn:hover { border-color: #a0cfff; }
+        .toggle-btn.selected { 
+            background: var(--primary); color: white; border-color: var(--primary); 
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+
+        /* 认读卡片样式 */
+        .flashcard-area { display: none; text-align: center; }
+        .flashcard {
+            width: 250px; height: 300px; margin: 0 auto 30px; border-radius: 20px;
+            background: white; display: flex; justify-content: center; align-items: center;
+            font-size: 120px; font-weight: bold; color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .flashcard-actions { display: flex; justify-content: center; gap: 20px; }
+        .btn-success { background: var(--success); color: white; font-size: 18px; padding: 15px 30px; border-radius: 30px;}
+        .btn-danger { background: var(--danger); color: white; font-size: 18px; padding: 15px 30px; border-radius: 30px;}
+
+        /* 找朋友 & 听音 选项样式 */
+        .match-area { text-align: center; display: none; }
+        .match-target { font-size: 100px; font-weight: bold; color: var(--primary); margin-bottom: 30px; }
+        .match-options { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .match-option {
+            width: 80px; height: 80px; font-size: 40px; border-radius: 15px; border: 2px solid var(--border);
+            background: white; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; font-weight: bold;
+        }
+        .match-option:hover { border-color: var(--primary); color: var(--primary); transform: scale(1.1); }
+        .match-option.correct { background: var(--success); color: white; border-color: var(--success); pointer-events: none;}
+        .match-option.wrong { background: var(--danger); color: white; border-color: var(--danger); pointer-events: none;}
+
+        /* 听音模式专属 */
+        .audio-btn {
+            font-size: 60px; border-radius: 50%; width: 120px; height: 120px;
+            background: var(--primary); color: white; border: none; cursor: pointer;
+            box-shadow: 0 10px 20px rgba(74,144,226,0.3); transition: 0.2s; margin-bottom: 30px;
+        }
+        .audio-btn:hover { transform: scale(1.05); }
+        .audio-btn:active { transform: scale(0.95); }
+
+        /* 错题本 */
+        .mistakes-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 20px;}
+        .mistake-item {
+            padding: 15px 25px; background: white; border: 2px solid var(--danger); border-radius: 10px;
+            font-size: 24px; font-weight: bold; color: var(--danger);
+        }
+        .empty-mistakes { text-align: center; color: var(--text-light); margin-top: 50px; font-size: 18px;}
+
+    </style>
+</head>
+<body>
+
+    <!-- 导航栏 -->
+    <nav>
+        <button id="nav-study" class="active" onclick="switchView('study')">📖 字母表</button>
+        <button id="nav-practice" onclick="switchView('practice')">🔀 随机认读</button>
+        <button id="nav-match" onclick="switchView('match')">🔗 找朋友</button>
+        <button id="nav-listen" onclick="switchView('listen')">🎧 听音选字</button>
+        <button id="nav-mistakes" onclick="switchView('mistakes')">📝 错题本</button>
+    </nav>
+
+    <main>
+        <!-- 视图1：字母表 -->
+        <div id="view-study" class="view active card">
+            <h2>英文字母表</h2>
+            <div class="alphabet-grid" id="alphabet-grid"></div>
+        </div>
+
+        <!-- 视图2：随机认读 -->
+        <div id="view-practice" class="view card">
+            <div id="practice-setup" class="setup-area">
+                <h2>随意点击，选择要认读的字母</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="selectAll('practice', true)">全选</button>
+                    <button class="btn btn-outline" onclick="selectAll('practice', false)">全不选</button>
+                </div>
+                <div class="toggle-grid" id="practice-toggle-grid"></div>
+                <button class="btn btn-primary" style="font-size: 20px; padding: 12px 50px;" onclick="startPractice()">🚀 开始认读</button>
+            </div>
+
+            <div id="practice-run" class="flashcard-area">
+                <h2>看字母，大声读出来</h2>
+                <div class="flashcard" id="flashcard-display">A</div>
+                <div class="flashcard-actions">
+                    <button class="btn btn-danger" onclick="answerPractice(false)">❌ 不认识</button>
+                    <button class="btn btn-success" onclick="answerPractice(true)">✅ 认识</button>
+                </div>
+                <p style="margin-top: 20px; color: var(--text-light);" id="practice-progress">剩余: 0</p>
+                <button class="btn btn-outline" style="margin-top: 20px;" onclick="switchView('practice')">返回重选</button>
+            </div>
+        </div>
+
+        <!-- 视图3：找朋友匹配 -->
+        <div id="view-match" class="view card">
+            <div id="match-setup" class="setup-area">
+                <h2>随意点击，选择要找朋友的字母</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="selectAll('match', true)">全选</button>
+                    <button class="btn btn-outline" onclick="selectAll('match', false)">全不选</button>
+                </div>
+                <div class="toggle-grid" id="match-toggle-grid"></div>
+                <button class="btn btn-primary" style="font-size: 20px; padding: 12px 50px;" onclick="startMatch()">🚀 开始找朋友</button>
+            </div>
+
+            <div id="match-run" class="match-area">
+                <h2>大小写互找（连线匹配）</h2>
+                <p style="color: var(--text-light); margin-bottom: 20px;">点击下方正确的好朋友</p>
+                <div id="match-target" class="match-target">A</div>
+                <div id="match-options" class="match-options"></div>
+                <button id="next-match-btn" class="btn btn-primary" style="margin-top: 40px; display: none; padding: 12px 40px; font-size: 18px;" onclick="nextMatch()">下一题</button>
+                <br>
+                <button class="btn btn-outline" style="margin-top: 20px;" onclick="switchView('match')">返回重选</button>
+            </div>
+        </div>
+
+        <!-- 视图4：听音选字 -->
+        <div id="view-listen" class="view card">
+            <div id="listen-setup" class="setup-area">
+                <h2>随意点击，选择要听音的字母</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="selectAll('listen', true)">全选</button>
+                    <button class="btn btn-outline" onclick="selectAll('listen', false)">全不选</button>
+                </div>
+                <div class="toggle-grid" id="listen-toggle-grid"></div>
+                <button class="btn btn-primary" style="font-size: 20px; padding: 12px 50px;" onclick="startListen()">🚀 开始听音</button>
+            </div>
+
+            <div id="listen-run" class="match-area">
+                <h2>竖起耳朵，选出听到的字母</h2>
+                <p style="color: var(--text-light); margin-bottom: 20px;">没听清可以点击喇叭重播</p>
+                
+                <button class="audio-btn" onclick="playCurrentAudio()">🔊</button>
+                
+                <div id="listen-options" class="match-options"></div>
+                <button id="next-listen-btn" class="btn btn-primary" style="margin-top: 40px; display: none; padding: 12px 40px; font-size: 18px;" onclick="nextListen()">下一题</button>
+                <br>
+                <button class="btn btn-outline" style="margin-top: 20px;" onclick="switchView('listen')">返回重选</button>
+            </div>
+        </div>
+
+        <!-- 视图5：错题本 -->
+        <div id="view-mistakes" class="view card">
+            <h2>错题本</h2>
+            <div style="text-align: center;">
+                <button class="btn btn-outline" onclick="clearMistakes()">🗑️ 清空</button>
+                <button class="btn btn-primary" onclick="practiceMistakes()">♻️ 去认读复习</button>
+            </div>
+            <div id="mistakes-container"></div>
+        </div>
+    </main>
+
+    <!-- 字母详情弹窗 -->
+    <div class="modal-overlay" id="letter-modal" onclick="if(event.target===this)closeModal()">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">×</span>
+            <div class="modal-letter" id="modal-letter">Aa</div>
+            <div class="modal-emoji" id="modal-emoji">🍎</div>
+            <div class="modal-word" id="modal-word">Apple</div>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心数据字典 ---
+        const alphabetData = [
+            { u: 'A', l: 'a', word: 'Apple', emoji: '🍎', distractors: ['o', 'e', 'c'] },
+            { u: 'B', l: 'b', word: 'Ball', emoji: '🏀', distractors: ['d', 'p', 'q'] },
+            { u: 'C', l: 'c', word: 'Cat', emoji: '🐱', distractors: ['e', 'o', 'a'] },
+            { u: 'D', l: 'd', word: 'Dog', emoji: '🐶', distractors: ['b', 'p', 'q'] },
+            { u: 'E', l: 'e', word: 'Elephant', emoji: '🐘', distractors: ['c', 'a', 'o'] },
+            { u: 'F', l: 'f', word: 'Fish', emoji: '🐟', distractors: ['t', 'l', 'j'] },
+            { u: 'G', l: 'g', word: 'Gorilla', emoji: '🦍', distractors: ['q', 'p', 'y'] },
+            { u: 'H', l: 'h', word: 'Hat', emoji: '🎩', distractors: ['n', 'b', 'k'] },
+            { u: 'I', l: 'i', word: 'Igloo', emoji: '🛖', distractors: ['l', 'j', 't'] },
+            { u: 'J', l: 'j', word: 'Juice', emoji: '🧃', distractors: ['i', 'l', 'f'] },
+            { u: 'K', l: 'k', word: 'Kangaroo', emoji: '🦘', distractors: ['h', 'x', 'y'] },
+            { u: 'L', l: 'l', word: 'Lion', emoji: '🦁', distractors: ['i', '1', 't'] },
+            { u: 'M', l: 'm', word: 'Monkey', emoji: '🐒', distractors: ['n', 'w', 'h'] },
+            { u: 'N', l: 'n', word: 'No', emoji: '🚫', distractors: ['m', 'h', 'u'] },
+            { u: 'O', l: 'o', word: 'Octopus', emoji: '🐙', distractors: ['c', 'e', 'a'] },
+            { u: 'P', l: 'p', word: 'Pig', emoji: '🐷', distractors: ['q', 'b', 'd'] },
+            { u: 'Q', l: 'q', word: 'Question', emoji: '❓', distractors: ['p', 'g', 'd'] },
+            { u: 'R', l: 'r', word: 'Ring', emoji: '💍', distractors: ['n', 'h', 't'] },
+            { u: 'S', l: 's', word: 'Sun', emoji: '☀️', distractors: ['z', 'c', 'e'] },
+            { u: 'T', l: 't', word: 'Train', emoji: '🚂', distractors: ['f', 'l', 'i'] },
+            { u: 'U', l: 'u', word: 'Umbrella', emoji: '☂️', distractors: ['v', 'n', 'w'] },
+            { u: 'V', l: 'v', word: 'Van', emoji: '🚐', distractors: ['u', 'w', 'y'] },
+            { u: 'W', l: 'w', word: 'Watch', emoji: '⌚', distractors: ['v', 'm', 'u'] },
+            { u: 'X', l: 'x', word: 'Box', emoji: '📦', distractors: ['y', 'k', 'v'] }, 
+            { u: 'Y', l: 'y', word: 'Yellow', emoji: '🟡', distractors: ['v', 'x', 'g'] },
+            { u: 'Z', l: 'z', word: 'Zoo', emoji: '🦓', distractors: ['s', 'x', 'c'] }
+        ];
+
+        let mistakes = JSON.parse(localStorage.getItem('english_mistakes')) || [];
+
+        function saveMistakes() { localStorage.setItem('english_mistakes', JSON.stringify(mistakes)); }
+        function addMistake(letterIndex) {
+            if (!mistakes.includes(letterIndex)) {
+                mistakes.push(letterIndex);
+                saveMistakes();
+            }
+        }
+
+        // --- 视图切换 ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+            const navBtn = document.getElementById('nav-' + viewId);
+            if(navBtn) navBtn.classList.add('active');
+
+            if (viewId === 'study') initStudy();
+            if (viewId === 'practice') initSelector('practice');
+            if (viewId === 'match') initSelector('match');
+            if (viewId === 'listen') initSelector('listen');
+            if (viewId === 'mistakes') renderMistakes();
+        }
+
+        // --- 模块1：纯字母表 ---
+        function initStudy() {
+            const grid = document.getElementById('alphabet-grid');
+            grid.innerHTML = ''; 
+            alphabetData.forEach((item, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'letter-btn';
+                btn.innerText = `${item.u}${item.l}`;
+                btn.onclick = () => openModal(index);
+                grid.appendChild(btn);
+            });
+        }
+
+        function openModal(index) {
+            const data = alphabetData[index];
+            document.getElementById('modal-letter').innerText = `${data.u} ${data.l}`;
+            document.getElementById('modal-emoji').innerText = data.emoji;
+            document.getElementById('modal-word').innerText = data.word;
+            document.getElementById('letter-modal').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('letter-modal').style.display = 'none'; }
+
+        // --- 选择器共用生成 ---
+        function initSelector(type) {
+            const setupId = type + '-setup';
+            const runId = type + '-run';
+            document.getElementById(setupId).style.display = 'block';
+            document.getElementById(runId).style.display = 'none';
+
+            const gridId = type + '-toggle-grid';
+            const grid = document.getElementById(gridId);
+            
+            if(grid.children.length === 0) {
+                grid.innerHTML = '';
+                alphabetData.forEach((item, index) => {
+                    const btn = document.createElement('div');
+                    btn.className = 'toggle-btn selected';
+                    btn.innerText = `${item.u}${item.l}`;
+                    btn.dataset.index = index;
+                    btn.onclick = function() { this.classList.toggle('selected'); }
+                    grid.appendChild(btn);
+                });
+            }
+        }
+
+        function selectAll(type, isSelectAll) {
+            const gridId = type + '-toggle-grid';
+            document.querySelectorAll(`#${gridId} .toggle-btn`).forEach(btn => {
+                if (isSelectAll) btn.classList.add('selected');
+                else btn.classList.remove('selected');
+            });
+        }
+
+        function getSelected(type) {
+            const selected = [];
+            document.querySelectorAll(`#${type}-toggle-grid .toggle-btn.selected`).forEach(btn => {
+                selected.push(parseInt(btn.dataset.index));
+            });
+            return selected;
+        }
+
+        // --- 模块2：随机认读 ---
+        let practiceQueue = [];
+        function startPractice(customQueue = null) {
+            practiceQueue = [];
+            const selectedIdx = customQueue || getSelected('practice');
+            if (selectedIdx.length === 0) return alert('请至少点击勾选一个字母哦！');
+            
+            selectedIdx.forEach(idx => {
+                practiceQueue.push({ char: alphabetData[idx].u, index: idx }); 
+                practiceQueue.push({ char: alphabetData[idx].l, index: idx }); 
+            });
+            practiceQueue.sort(() => Math.random() - 0.5); 
+            
+            document.getElementById('practice-setup').style.display = 'none';
+            document.getElementById('practice-run').style.display = 'block';
+            showNextPracticeCard();
+        }
+
+        function showNextPracticeCard() {
+            if (practiceQueue.length === 0) {
+                alert('🎉 太棒了，你读完了刚才选的所有字母！');
+                return switchView('practice');
+            }
+            document.getElementById('flashcard-display').innerText = practiceQueue[0].char;
+            document.getElementById('practice-progress').innerText = `剩余: ${practiceQueue.length} 个`;
+        }
+
+        function answerPractice(isKnown) {
+            const current = practiceQueue.shift();
+            if (!isKnown) addMistake(current.index);
+            showNextPracticeCard();
+        }
+
+        // --- 模块3：找朋友 (升级双向：大找小 / 小找大) ---
+        let matchQueue = [];
+        let currentMatchIndex = 0;
+
+        function startMatch() {
+            matchQueue = getSelected('match');
+            if (matchQueue.length === 0) return alert('请至少点击勾选一个字母哦！');
+            matchQueue.sort(() => Math.random() - 0.5); 
+            
+            document.getElementById('match-setup').style.display = 'none';
+            document.getElementById('match-run').style.display = 'block';
+            nextMatch();
+        }
+
+        function nextMatch() {
+            if (matchQueue.length === 0) {
+                alert('🎉 太棒了，找朋友游戏通关了！');
+                return switchView('match');
+            }
+
+            document.getElementById('next-match-btn').style.display = 'none';
+            currentMatchIndex = matchQueue.shift();
+            const data = alphabetData[currentMatchIndex];
+            
+            // 核心逻辑升级：随机决定是大找小，还是小找大 (50%概率)
+            const isUpperToLower = Math.random() > 0.5;
+            
+            const targetChar = isUpperToLower ? data.u : data.l;
+            const correctOpt = isUpperToLower ? data.l : data.u;
+            // 如果找的是大写，那么干扰项也都要转换成大写
+            const distractorOpts = isUpperToLower ? data.distractors : data.distractors.map(d => d.toUpperCase());
+
+            document.getElementById('match-target').innerText = targetChar;
+            
+            let options = [correctOpt, ...distractorOpts];
+            options.sort(() => Math.random() - 0.5); 
+
+            const optionsContainer = document.getElementById('match-options');
+            optionsContainer.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'match-option';
+                btn.innerText = opt;
+                btn.onclick = () => checkMatch(btn, opt === correctOpt, correctOpt);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkMatch(btn, isCorrect, correctAns) {
+            if (document.querySelector('#match-options .match-option.correct')) return; 
+
+            if (isCorrect) {
+                btn.classList.add('correct');
+                document.getElementById('next-match-btn').style.display = 'inline-block';
+            } else {
+                btn.classList.add('wrong');
+                addMistake(currentMatchIndex); 
+                document.querySelectorAll('#match-options .match-option').forEach(el => {
+                    if(el.innerText === correctAns) el.classList.add('correct');
+                });
+                document.getElementById('next-match-btn').style.display = 'inline-block';
+            }
+        }
+
+        // --- 模块4：听音选字 (纯本地发音) ---
+        let listenQueue = [];
+        let currentListenIndex = 0;
+        let currentListenChar = '';
+
+        function startListen() {
+            listenQueue = getSelected('listen');
+            if (listenQueue.length === 0) return alert('请至少点击勾选一个字母哦！');
+            listenQueue.sort(() => Math.random() - 0.5);
+            
+            document.getElementById('listen-setup').style.display = 'none';
+            document.getElementById('listen-run').style.display = 'block';
+            nextListen();
+        }
+
+        function nextListen() {
+            if (listenQueue.length === 0) {
+                alert('🎉 太棒了，听力练习全部完成！');
+                return switchView('listen');
+            }
+
+            document.getElementById('next-listen-btn').style.display = 'none';
+            currentListenIndex = listenQueue.shift();
+            const data = alphabetData[currentListenIndex];
+            
+            // 随机决定这次是让学生选大写还是小写
+            const isUpper = Math.random() > 0.5;
+            currentListenChar = isUpper ? data.u : data.l;
+            const distractorOpts = isUpper ? data.distractors.map(d => d.toUpperCase()) : data.distractors;
+
+            let options = [currentListenChar, ...distractorOpts];
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsContainer = document.getElementById('listen-options');
+            optionsContainer.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'match-option';
+                btn.innerText = opt;
+                btn.onclick = () => checkListen(btn, opt === currentListenChar);
+                optionsContainer.appendChild(btn);
+            });
+
+            // 自动播放一次声音
+            setTimeout(playCurrentAudio, 300);
+        }
+
+        function playCurrentAudio() {
+            // 使用浏览器内置的 SpeechSynthesis API (脱机可用)
+            const synth = window.speechSynthesis;
+            // 为了让发音只读字母发音，我们传入大写字母
+            const utterance = new SpeechSynthesisUtterance(alphabetData[currentListenIndex].u);
+            utterance.lang = 'en-US'; // 确保英文发音
+            utterance.rate = 0.8; // 语速稍微放慢，适合儿童
+            synth.speak(utterance);
+        }
+
+        function checkListen(btn, isCorrect) {
+            if (document.querySelector('#listen-options .match-option.correct')) return; 
+
+            if (isCorrect) {
+                btn.classList.add('correct');
+                document.getElementById('next-listen-btn').style.display = 'inline-block';
+            } else {
+                btn.classList.add('wrong');
+                addMistake(currentListenIndex);
+                document.querySelectorAll('#listen-options .match-option').forEach(el => {
+                    if(el.innerText === currentListenChar) el.classList.add('correct');
+                });
+                document.getElementById('next-listen-btn').style.display = 'inline-block';
+            }
+        }
+
+        // --- 模块5：错题本 ---
+        function renderMistakes() {
+            const container = document.getElementById('mistakes-container');
+            container.innerHTML = '';
+            
+            if (mistakes.length === 0) {
+                container.innerHTML = '<div class="empty-mistakes">🎉 厉害！当前没有错题！</div>';
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'mistakes-grid';
+            mistakes.forEach(index => {
+                const item = document.createElement('div');
+                item.className = 'mistake-item';
+                item.innerText = `${alphabetData[index].u} ${alphabetData[index].l}`;
+                grid.appendChild(item);
+            });
+            container.appendChild(grid);
+        }
+
+        function clearMistakes() {
+            if(confirm('确定要清空错题本吗？')) {
+                mistakes = []; saveMistakes(); renderMistakes();
+            }
+        }
+
+        function practiceMistakes() {
+            if (mistakes.length === 0) return alert('没有错题需要练习哦！');
+            switchView('practice');
+            startPractice(mistakes);
+        }
+
+        // 页面启动
+        initStudy();
+
+    </script>
+</body>
+</html>
